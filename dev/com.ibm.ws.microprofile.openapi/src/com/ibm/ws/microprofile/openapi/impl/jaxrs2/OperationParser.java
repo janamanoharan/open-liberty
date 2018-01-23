@@ -11,20 +11,19 @@
 
 package com.ibm.ws.microprofile.openapi.impl.jaxrs2;
 
+import java.awt.PageAttributes.MediaType;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.swing.text.AbstractDocument.Content;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Produces;
+import javax.xml.validation.Schema;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.microprofile.openapi.annotations.media.Encoding;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.models.Components;
 import org.eclipse.microprofile.openapi.models.links.Link;
-import org.eclipse.microprofile.openapi.models.media.Content;
-import org.eclipse.microprofile.openapi.models.media.MediaType;
-import org.eclipse.microprofile.openapi.models.media.Schema;
 import org.eclipse.microprofile.openapi.models.media.Schema.SchemaType;
 import org.eclipse.microprofile.openapi.models.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.models.responses.APIResponse;
@@ -81,18 +80,18 @@ public class OperationParser {
             getContent(response.content(), classProduces == null ? new String[0] : classProduces.value(),
                        methodProduces == null ? new String[0] : methodProduces.value(), components).ifPresent(apiResponseObject::content);
             AnnotationsUtils.getHeaders(response.headers()).ifPresent(apiResponseObject::headers);
-            if (StringUtils.isNotBlank(apiResponseObject.getDescription()) || apiResponseObject.getContent() != null || apiResponseObject.getHeaders() != null) {
+            //if (StringUtils.isNotBlank(apiResponseObject.getDescription()) || apiResponseObject.getContent() != null || apiResponseObject.getHeaders() != null) {
 
-                Map<String, Link> links = AnnotationsUtils.getLinks(response.links());
-                if (links.size() > 0) {
-                    apiResponseObject.setLinks(links);
-                }
-                if (StringUtils.isNotBlank(response.responseCode())) {
-                    apiResponsesObject.addApiResponse(response.responseCode(), apiResponseObject);
-                } else {
-                    apiResponsesObject.defaultValue(apiResponseObject);
-                }
+            Map<String, Link> links = AnnotationsUtils.getLinks(response.links());
+            if (links.size() > 0) {
+                apiResponseObject.setLinks(links);
             }
+            if (StringUtils.isNotBlank(response.responseCode())) {
+                apiResponsesObject.addApiResponse(response.responseCode(), apiResponseObject);
+            } else {
+                apiResponsesObject.defaultValue(apiResponseObject);
+            }
+            // }
         }
         if (apiResponsesObject.isEmpty()) {
             return Optional.empty();
