@@ -10,11 +10,7 @@
  *******************************************************************************/
 package com.ibm.ws.microprofile.config.archaius.impl;
 
-import java.lang.reflect.Type;
-import java.util.Map;
-
-import org.eclipse.microprofile.config.spi.Converter;
-
+import com.ibm.ws.microprofile.config.converters.PriorityConverterMap;
 import com.ibm.ws.microprofile.config.impl.ConversionManager;
 import com.netflix.archaius.api.Decoder;
 
@@ -25,10 +21,10 @@ public class ConversionDecoder extends ConversionManager implements Decoder {
 
     /**
      * Constructor
-     * 
+     *
      * @param converters
      */
-    public ConversionDecoder(Map<Type, Converter<?>> converters) {
+    public ConversionDecoder(PriorityConverterMap converters) {
         super(converters);
     }
 
