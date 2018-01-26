@@ -8,7 +8,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package org.eclipse.microprofile.config.tck;
+package org.eclipse.microprofile.openapi.fat.tck;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
