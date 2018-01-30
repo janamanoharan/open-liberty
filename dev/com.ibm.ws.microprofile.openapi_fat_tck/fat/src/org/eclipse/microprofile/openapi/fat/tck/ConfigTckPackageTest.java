@@ -24,7 +24,7 @@ import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.MvnUtils;
-
+import com.ibm.websphere.simplicity.PortType;
 /**
  * This is a test class that runs a whole Maven TCK as one test FAT test.
  * There is a detailed output on specific
@@ -33,6 +33,8 @@ import componenttest.topology.utils.MvnUtils;
 @RunWith(FATRunner.class)
 public class ConfigTckPackageTest {
 
+
+    
     @Server("FATServer")
     public static LibertyServer server;
 
@@ -52,11 +54,20 @@ public class ConfigTckPackageTest {
         if (!MvnUtils.init) {
             MvnUtils.init(server);
         }
+        
+        // inject the test.url parameter into the command
+        String protocol = "http";
+        String host = server.getHostname();
+        String port = Integer.toString(server.getPort(PortType.WC_defaulthost));
+        
+        String [] customMvnCliTckRoot = MvnUtils.concatStringArray(MvnUtils.mvnCliTckRoot, new String[] { "-Dtest.url=" + protocol + "://" + host + ":" + port });
+
         // Everything under autoFVT/results is collected from the child build machine
         File mvnOutput = new File(MvnUtils.home, "results/mvnOutput_TCK");
-        int rc = MvnUtils.runCmd(MvnUtils.mvnCliTckRoot, MvnUtils.tckRunnerDir, mvnOutput);
+        int rc = MvnUtils.runCmd(customMvnCliTckRoot, MvnUtils.tckRunnerDir, mvnOutput);
         File src = new File(MvnUtils.home, "publish/tckRunner/tck/target/surefire-reports/junitreports");
         File tgt = new File(MvnUtils.home, "results/junit");
+
         try {
             Files.walkFileTree(src.toPath(), new MvnUtils.CopyFileVisitor(src.toPath(), tgt.toPath()));
         } catch (java.nio.file.NoSuchFileException nsfe) {
@@ -68,7 +79,7 @@ public class ConfigTckPackageTest {
         // mvn returns 0 if all surefire tests pass and -1 otherwise - this Assert is enough to mark the build as having failed
         // the TCK regression
 
-//        Assert.assertTrue("com.ibm.ws.microprofile.openapi_fat_tck:org.eclipse.microprofile.openapi.fat.tck.ConfigTckPackageTest:testTck:TCK has returned non-zero return code of: " + rc
+//        Assert.assertTrue(server.getInstallRoot() + "  com.ibm.ws.microprofile.openapi_fat_tck:org.eclipse.microprofile.openapi.fat.tck.ConfigTckPackageTest:testTck:TCK has returned non-zero return code of: " + rc
 //                          +
 //                          " This indicates test failure, see:" +
 //                          " autoFVT/publish/tckRunner/tck/target/surefire-reports/index.html", rc == 0);

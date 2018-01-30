@@ -21,7 +21,7 @@ So your server configurations should look like this:
 ```
     <container qualifier="websphere" default="true">
         <configuration>
-            <property name="wlpHome">/Users/navid/Development/wlps/openLiberty/wlp</property>
+            <property name="wlpHome">${wlp}</property>
             ...
         </configuration>
     </container>
