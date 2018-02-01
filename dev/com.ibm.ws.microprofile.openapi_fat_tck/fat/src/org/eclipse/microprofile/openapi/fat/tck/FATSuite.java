@@ -16,7 +16,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-                ConfigTckPackageTest.class
+                OpenAPITckTest.class
 })
 
 public class FATSuite {}

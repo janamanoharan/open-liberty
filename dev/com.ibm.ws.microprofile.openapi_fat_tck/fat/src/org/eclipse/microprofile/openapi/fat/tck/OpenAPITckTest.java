@@ -12,6 +12,7 @@ package org.eclipse.microprofile.openapi.fat.tck;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.logging.Logger;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -25,16 +26,15 @@ import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.MvnUtils;
 import com.ibm.websphere.simplicity.PortType;
+import com.ibm.websphere.simplicity.log.Log;
 /**
  * This is a test class that runs a whole Maven TCK as one test FAT test.
  * There is a detailed output on specific
  */
 @SuppressWarnings("restriction")
 @RunWith(FATRunner.class)
-public class ConfigTckPackageTest {
+public class OpenAPITckTest {
 
-
-    
     @Server("FATServer")
     public static LibertyServer server;
 
@@ -45,12 +45,12 @@ public class ConfigTckPackageTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        server.stopServer("CWMCG0007E", "CWMCG0014E", "CWMCG0015E", "CWMCG5003E", "CWWKZ0002E");
+        server.stopServer(); 
     }
 
     @Test
     @AllowedFFDC // The tested deployment exceptions cause FFDC so we have to allow for this.
-    public void testConfigTck() throws Exception {
+    public void testOpenAPITck() throws Exception {
         if (!MvnUtils.init) {
             MvnUtils.init(server);
         }
@@ -76,10 +76,12 @@ public class ConfigTckPackageTest {
                             + src.getAbsolutePath(), nsfe);
         }
         
+        Log.warning(getClass(), "Mvn command finished with return code: " + Integer.toString(rc));
+        
         // mvn returns 0 if all surefire tests pass and -1 otherwise - this Assert is enough to mark the build as having failed
         // the TCK regression
 
-//        Assert.assertTrue(server.getInstallRoot() + "  com.ibm.ws.microprofile.openapi_fat_tck:org.eclipse.microprofile.openapi.fat.tck.ConfigTckPackageTest:testTck:TCK has returned non-zero return code of: " + rc
+//        Assert.assertTrue(server.getInstallRoot() + "  com.ibm.ws.microprofile.openapi_fat_tck:org.eclipse.microprofile.openapi.fat.tck.OpenAPITckTest:testTck:TCK has returned non-zero return code of: " + rc
 //                          +
 //                          " This indicates test failure, see:" +
 //                          " autoFVT/publish/tckRunner/tck/target/surefire-reports/index.html", rc == 0);
