@@ -14,6 +14,8 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.logging.Logger;
 
+import javax.xml.xpath.XPathExpression;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -78,6 +80,8 @@ public class OpenAPITckTest {
         
         Log.warning(getClass(), "Mvn command finished with return code: " + Integer.toString(rc));
         
+        ResultsUtil result = new ResultsUtil();
+        result.xPathProcessor();
         // mvn returns 0 if all surefire tests pass and -1 otherwise - this Assert is enough to mark the build as having failed
         // the TCK regression
 
