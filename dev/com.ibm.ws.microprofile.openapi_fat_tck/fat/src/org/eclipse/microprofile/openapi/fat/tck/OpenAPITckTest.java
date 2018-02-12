@@ -47,7 +47,7 @@ public class OpenAPITckTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        server.stopServer(); 
+        server.stopServer("CWWKO1650E", "CWWKO1651W"); 
     }
 
     @Test
