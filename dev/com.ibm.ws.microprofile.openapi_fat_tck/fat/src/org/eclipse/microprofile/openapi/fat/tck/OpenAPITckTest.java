@@ -65,14 +65,18 @@ public class OpenAPITckTest {
         String [] customMvnCliTckRoot = MvnUtils.concatStringArray(MvnUtils.mvnCliTckRoot, new String[] { "-Dtest.url=" + protocol + "://" + host + ":" + port });
 
         // Everything under autoFVT/results is collected from the child build machine
-        File mvnOutput = new File(MvnUtils.home, "results/mvnOutput_TCK");
+        File mvnOutput = new File(MvnUtils.resultsDir, "mvnOutput_TCK");
         int rc = MvnUtils.runCmd(customMvnCliTckRoot, MvnUtils.tckRunnerDir, mvnOutput);
-        File src = new File(MvnUtils.home, "publish/tckRunner/tck/target/surefire-reports/junitreports");
-        File tgt = new File(MvnUtils.home, "results/junit");
+        
+        File src = new File(MvnUtils.resultsDir, "../publish/tckRunner/tck/target/surefire-reports/junitreports");
+        File tgt = new File(MvnUtils.resultsDir, "junit");
 
         try {
             Files.walkFileTree(src.toPath(), new MvnUtils.CopyFileVisitor(src.toPath(), tgt.toPath()));
         } catch (java.nio.file.NoSuchFileException nsfe) {
+        	Log.warning(getClass(), "SRC " + src.getAbsolutePath());
+        	Log.warning(getClass(), "TGT " + tgt.getAbsolutePath());
+        	
             Assert.assertNull(
                     "The TCK tests' results directory does not exist which suggests the TCK tests did not run - check build logs."
                             + src.getAbsolutePath(), nsfe);
