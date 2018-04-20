@@ -26,8 +26,8 @@ import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.CDI;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.security.enterprise.credential.Credential;
 import javax.security.enterprise.credential.CallerOnlyCredential;
+import javax.security.enterprise.credential.Credential;
 import javax.security.enterprise.credential.UsernamePasswordCredential;
 import javax.security.enterprise.identitystore.CredentialValidationResult;
 import javax.security.enterprise.identitystore.DatabaseIdentityStoreDefinition;
@@ -40,6 +40,7 @@ import com.ibm.websphere.ras.ProtectedString;
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Sensitive;
+import com.ibm.ws.security.javaeesec.CDIHelper;
 import com.ibm.ws.security.javaeesec.JavaEESecConstants;
 
 /**
@@ -57,6 +58,8 @@ public class DatabaseIdentityStore implements IdentityStore {
     /** The password hash to use for password comparisons. */
     private final PasswordHash passwordHash;
 
+    private InitialContext initialContext = null;
+
     /**
      * Construct a new {@link DatabaseIdentityStore} instance using the specified definitions.
      *
@@ -70,7 +73,23 @@ public class DatabaseIdentityStore implements IdentityStore {
          */
         Instance<? extends PasswordHash> p2phi = CDI.current().select(this.idStoreDefinition.getHashAlgorithm());
         if (p2phi != null) {
-            passwordHash = p2phi.get();
+            if (p2phi.isUnsatisfied() == false && p2phi.isAmbiguous() == false) {
+                passwordHash = p2phi.get();
+            } else {
+                Tr.event(tc, "Try alternate bean lookup. isUnsatisfied() is " + p2phi.isUnsatisfied() + ", isAmbiguous() is " + p2phi.isAmbiguous());
+                Set<? extends PasswordHash> hashes = CDIHelper.getBeansFromCurrentModule(this.idStoreDefinition.getHashAlgorithm());
+                if (hashes.size() == 1) {
+                    passwordHash = hashes.iterator().next();
+                } else if (hashes.size() == 0) {
+                    Tr.error(tc, "JAVAEESEC_ERROR_HASH_NOTFOUND", new Object[] { this.idStoreDefinition.getHashAlgorithm() });
+                    throw new IllegalArgumentException("Cannot load the password HashAlgorithm from the current module, the CDI bean was not found for: "
+                                                       + this.idStoreDefinition.getHashAlgorithm());
+                } else {
+                    Tr.error(tc, "JAVAEESEC_ERROR_HASH_NOTFOUND", new Object[] { this.idStoreDefinition.getHashAlgorithm() });
+                    throw new IllegalArgumentException("Cannot load the password HashAlgorithm, " + hashes.size() + " CDI beans were found for: "
+                                                       + this.idStoreDefinition.getHashAlgorithm());
+                }
+            }
         } else {
             Tr.error(tc, "JAVAEESEC_ERROR_HASH_NOTFOUND", new Object[] { this.idStoreDefinition.getHashAlgorithm() });
             throw new IllegalArgumentException("Cannot load the password HashAlgorithm, the CDI bean was not found for: " + this.idStoreDefinition.getHashAlgorithm());
@@ -98,6 +117,14 @@ public class DatabaseIdentityStore implements IdentityStore {
             }
 
             passwordHash.initialize(prepped);
+        }
+
+        try {
+            initialContext = new InitialContext();
+        } catch (NamingException e) {
+            if (tc.isEventEnabled()) {
+                Tr.event(tc, "Setting up InitializeContext failed, will try later.", e);
+            }
         }
     }
 
@@ -146,7 +173,7 @@ public class DatabaseIdentityStore implements IdentityStore {
                 conn.close();
             }
         } catch (NamingException | SQLException e) {
-            Tr.warning(tc, "JAVAEESEC_WARNING_EXCEPTION_ON_GROUPS", new Object[] { caller, idStoreDefinition.getCallerQuery(), groups, e });
+            Tr.warning(tc, "JAVAEESEC_WARNING_EXCEPTION_ON_GROUPS", new Object[] { caller, idStoreDefinition.getGroupsQuery(), groups, e });
         }
 
         /*
@@ -171,14 +198,14 @@ public class DatabaseIdentityStore implements IdentityStore {
         String caller;
         ProtectedString password = null;
         if (credential instanceof UsernamePasswordCredential) {
-            caller = ((UsernamePasswordCredential)credential).getCaller();
-            password = new ProtectedString(((UsernamePasswordCredential)credential).getPassword().getValue());
+            caller = ((UsernamePasswordCredential) credential).getCaller();
+            password = new ProtectedString(((UsernamePasswordCredential) credential).getPassword().getValue());
 
         } else if (credential instanceof CallerOnlyCredential) {
             callerOnly = true;
-            caller = ((CallerOnlyCredential)credential).getCaller();
+            caller = ((CallerOnlyCredential) credential).getCaller();
         } else {
-            Tr.warning(tc, "JAVAEESEC_WARNING_WRONG_CRED");
+            Tr.error(tc, "JAVAEESEC_ERROR_WRONG_CRED");
             return CredentialValidationResult.NOT_VALIDATED_RESULT;
         }
 
@@ -248,8 +275,8 @@ public class DatabaseIdentityStore implements IdentityStore {
         }
 
         if (callerOnly || passwordHash.verify(password.getChars(), String.valueOf(dbPassword.getChars()))) {
-            Set<String> groups = getCallerGroups(new CredentialValidationResult(null, caller, caller, caller, null));
-            return new CredentialValidationResult(idStoreDefinition.getDataSourceLookup(), caller, caller, caller, groups);
+            Set<String> groups = getCallerGroups(new CredentialValidationResult(null, caller, null, caller, null));
+            return new CredentialValidationResult(idStoreDefinition.getDataSourceLookup(), caller, null, caller, groups);
         } else {
             if (tc.isEventEnabled()) {
                 Tr.event(tc, "PasswordHash verify check returned false for caller: " + caller);
@@ -284,13 +311,16 @@ public class DatabaseIdentityStore implements IdentityStore {
     }
 
     private Connection getConnection(String caller) throws NamingException, SQLException {
-        // datasource could be an expression, look it up fresh everytime.
+        if (initialContext == null) {
+            initialContext = new InitialContext();
+        }
+        // datasource could be an expression, look it up fresh every time.
         String dataSourceLookup = idStoreDefinition.getDataSourceLookup();
         if (dataSourceLookup == null || dataSourceLookup.isEmpty()) {
             throw new IllegalArgumentException("The 'dataSourceLookup' configuration cannot be empty or null.");
         }
 
-        DataSource dataSource = (DataSource) new InitialContext().lookup(dataSourceLookup);
+        DataSource dataSource = (DataSource) initialContext.lookup(dataSourceLookup);
 
         return dataSource.getConnection();
     }
