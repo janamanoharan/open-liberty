@@ -37,3 +37,8 @@ fat.minimum.java.level: 1.8
     com.fasterxml.jackson.core:jackson-databind;version=2.9.1, \
     com.fasterxml.jackson.dataformat:jackson-dataformat-yaml;version=2.9.1, \
     org.yaml:snakeyaml;version=1.18
+
+tested.features:\
+	jsonp-1.1,\
+	jaxrsclient-2.1,\
+	jaxrs-2.1
